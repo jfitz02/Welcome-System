@@ -4,54 +4,47 @@ import os
 import numpy as np
 import pickle
 
-# all_encodings={}
 
-
-# def get_encoding_for(person):
-#     pictures = os.listdir("./data2/"+person)
-#     for pic in pictures:
-#         print(pic)
-#         img = face_recognition.load_image_file("./data2/"+person+"/"+pic)
-#         enc = face_recognition.face_encodings(img)
-#         if enc == []:
-#             continue
-#         return enc
-
-
-# josh_face_encoding = get_encoding_for("Josh")[0]
-# print("GOT JOSH")
-# pigeon_face_encoding = get_encoding_for("Pigeon")[0]
-# print("GOT PIGEON")
-# michal_face_encoding = get_encoding_for("Michal")[0]
-# print("GOT MICHAL")
-# nathan_face_encoding = get_encoding_for("Nathan")[0]
-# print("GOT NATHAN")
-
-# all_encodings["Josh"] = josh_face_encoding
-# all_encodings["Pigeon"] = pigeon_face_encoding
-# all_encodings["Michal"] = michal_face_encoding
-# all_encodings["Nathan"] = nathan_face_encoding
-
-# with open('dataset_faces.dat', 'wb') as f:
-#     pickle.dump(all_encodings, f)
 
 with open('dataset_faces.dat', 'rb') as f:
-	all_face_encodings = pickle.load(f)
+ 	all_face_encodings = pickle.load(f)
+
+
 
 face_names = list(all_face_encodings.keys())
 face_encodings = np.array(list(all_face_encodings.values()))
 
-#test = face_recognition.load_image_file("./data2/Pigeon/20210914_165754_030.jpg")
-test = face_recognition.load_image_file("test.jpg")
-face_encoding = face_recognition.face_encodings(test)[0]
 
-match = face_recognition.compare_faces(face_encodings, face_encoding)
+video_capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
-face_distances = face_recognition.face_distance(face_encodings, face_encoding)
-best_match_index = np.argmin(face_distances)
-print(face_distances)
-name = "Unknown"
-if match[best_match_index] and face_distances[best_match_index]<0.4:
-    name = face_names[best_match_index]
+while True:
 
-print(name)
+    ret, frame = video_capture.read()
+
+    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+
+    rgb_small_frame = small_frame[:, :, ::-1]
+
+    cv2.imshow('Video', rgb_small_frame)
+    cv2.imshow('Video2', frame)
+
+    # Hit 'q' on the keyboard to quit!
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+    face_locations = face_recognition.face_locations(rgb_small_frame)
+    try:
+        face_encoding = face_recognition.face_encodings(rgb_small_frame, [face_locations[0]])[0]
+    except IndexError as e:
+        print("Could not find anyone")
+        continue
+
+    match = face_recognition.compare_faces(face_encodings, face_encoding)
+    name = "unknown"
+
+    face_distances = face_recognition.face_distance(face_encodings, face_encoding)
+    best_match_index = np.argmin(face_distances)
+    if match[best_match_index] and face_distances[best_match_index]<0.5:
+        name = face_names[best_match_index]
+
+    print(name)
